@@ -24,7 +24,7 @@ typedef struct {
 
 void *calculate_matrix_row(void *args);
 void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
-void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
+void multiply_multiple_threads(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 float **create_matrix(int rows, int cols);
 void free_matrix(float **matrix, int rows);
 void print_matrix(float **matrix, int rows, int cols, int num_type);
@@ -167,12 +167,13 @@ void *calculate_matrix_row(void *args) {
     pthread_exit(NULL);
 }
 
-// Single-threaded matrix multiplication
-void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p) {
-    for (int i = 0; i < m; i++) {
-        for (int k = 0; k < p; k++) {
+// do the matrix multiplication using a single thread
+void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int rowsA, int columsA, int columnsB) {
+    // do matrix multiplication
+    for (int i = 0; i < rowsA; i++) {
+        for (int k = 0; k < columnsB; k++) {
             outputMatrix[i][k] = 0.0;
-            for (int j = 0; j < n; j++) {
+            for (int j = 0; j < columsA; j++) {
                 outputMatrix[i][k] += matrixA[i][j] * matrixB[j][k];
             }
         }
@@ -180,31 +181,37 @@ void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatr
 }
 
 // Multi-threaded matrix multiplication
-void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p) {
-    pthread_t *threads = malloc(m * sizeof(pthread_t));
-    ThreadParameters *thread_args = malloc(m * sizeof(ThreadParameters));
+void multiply_multiple_threads(float **matrixA, float **matrixB, float **outputMatrix, int rowsA, int columnsA, int columnsB) {
+    // allocate memory for threads
+    pthread_t *threads = malloc(rowsA * sizeof(pthread_t));
 
-    for (int i = 0; i < m; i++) {
-        thread_args[i].matrixA = matrixA;
-        thread_args[i].matrixB = matrixB;
-        thread_args[i].outputMatrix = outputMatrix;
-        thread_args[i].m = m;
-        thread_args[i].n = n;
-        thread_args[i].p = p;
-        thread_args[i].row = i;
+    // allocate memory for thread parameters
+    ThreadParameters *threadParameters = malloc(rowsA * sizeof(ThreadParameters));
+
+    // create threads for each row of the result matrix
+    for (int i = 0; i < rowsA; i++) {
+        threadParameters[i].matrixA = matrixA;
+        threadParameters[i].matrixB = matrixB;
+        threadParameters[i].outputMatrix = outputMatrix;
+        threadParameters[i].m = rowsA;
+        threadParameters[i].n = columnsA;
+        threadParameters[i].p = columnsB;
+        threadParameters[i].row = i;
         
-        if (pthread_create(&threads[i], NULL, calculate_matrix_row, &thread_args[i]) != 0) {
+        if (pthread_create(&threads[i], NULL, calculate_matrix_row, &threadParameters[i]) != 0) {
             printf("Error creating thread %d\n", i);
             exit(1);
         }
     }
 
-    for (int i = 0; i < m; i++) {
+    // wait for all threads to finish
+    for (int i = 0; i < rowsA; i++) {
         pthread_join(threads[i], NULL);
     }
 
+    // free memory
     free(threads);
-    free(thread_args);
+    free(threadParameters);
 }
 
 // Create matrix
@@ -414,7 +421,7 @@ int main(int argc, char *argv[]) {
 
     // Warm up run to stabilize CPU frequency and cache
     multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
-    multiply_multi_thread(matrixA, matrixB, outputMatrix_multi, m, n, p);
+    multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, m, n, p);
     
     // Multiple iterations for single thread
     for (int i = 0; i < num_iterations; i++) {
@@ -429,7 +436,7 @@ int main(int argc, char *argv[]) {
     // Multiple iterations for multi thread
     for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
-        multiply_multi_thread(matrixA, matrixB, outputMatrix_multi, m, n, p);
+        multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, m, n, p);
         gettimeofday(&end, NULL);
         time_multi += (end.tv_sec - start.tv_sec) + 
                      (end.tv_usec - start.tv_usec) / 1000000.0;
