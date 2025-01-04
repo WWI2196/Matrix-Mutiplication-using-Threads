@@ -1,27 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <time.h>
-#include <sys/time.h>
-#include <math.h>
+#include <time.h> // for random number seeding
+#include <sys/time.h> // to measure time
+#include <math.h> // for pow function
 
-// Define number types
+
+// number types use in matrices
 #define TYPE_INTEGER 1
 #define TYPE_FLOAT 2
 #define TYPE_MIXED 3
 
-// Structure for thread arguments
+// structure to hold necessary information for each thread
 typedef struct {
-    float **matrixA;
-    float **matrixB;
-    float **outputMatrix;
-    int m;      
-    int n;      
-    int p;      
-    int row;    
-} ThreadArgs;
+    float **matrixA; // input matrix A
+    float **matrixB; // input matrix B
+    float **outputMatrix; // output matrix
+    int m;      // number of rows in matrix A
+    int n;      // number of columns in matrix A (same as rows in matrix B)
+    int p;      // number of columns in matrix B
+    int row;    // row number to calculate
+} ThreadParameters;
 
-// Function prototypes
 void *multiply_row(void *args);
 void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
@@ -32,15 +32,19 @@ float **read_matrix_from_file(int rows, int cols, const char *filename);
 float **generate_random_matrix(int rows, int cols, int num_type, float min_val, float max_val);
 void clear_input_buffer();
 void print_separator();
-void write_results_to_file(const char *filename, float **matrixA, float **matrixB, 
-                          float **outputMatrix_single, float **outputMatrix_multi,
-                          int m, int n, int p, int num_type, 
-                          double time_single, double time_multi, int num_iterations);
+void write_results_to_file(const char *filename, float **matrixA, float **matrixB, float **outputMatrix_single, float **outputMatrix_multi,int m, int n, int p, int num_type, double time_single, double time_multi, int num_iterations);
 
-// Clear input buffer function
+// clear input buffer after scanf operations
 void clear_input_buffer() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
+    int characters_in_buffer;
+    do {
+        characters_in_buffer = getchar();
+        
+        // exit if reached the end of line or end of file
+        if (characters_in_buffer == '\n' || characters_in_buffer == EOF) {
+            break;
+        }
+    } while (1); // repeat until buffer is empty
 }
 
 // Print separator line
@@ -139,7 +143,7 @@ void write_results_to_file(const char *filename, float **matrixA, float **matrix
 
 // Thread function to multiply one row
 void *multiply_row(void *args) {
-    ThreadArgs *thread_args = (ThreadArgs *)args;
+    ThreadParameters *thread_args = (ThreadParameters *)args;
     int row = thread_args->row;
     
     for (int k = 0; k < thread_args->p; k++) {
@@ -166,7 +170,7 @@ void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatr
 // Multi-threaded matrix multiplication
 void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p) {
     pthread_t *threads = malloc(m * sizeof(pthread_t));
-    ThreadArgs *thread_args = malloc(m * sizeof(ThreadArgs));
+    ThreadParameters *thread_args = malloc(m * sizeof(ThreadParameters));
 
     for (int i = 0; i < m; i++) {
         thread_args[i].matrixA = matrixA;
