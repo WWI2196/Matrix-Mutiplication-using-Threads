@@ -12,9 +12,9 @@
 
 // Structure for thread arguments
 typedef struct {
-    float **A;
-    float **B;
-    float **C;
+    float **matrixA;
+    float **matrixB;
+    float **outputMatrix;
     int m;      
     int n;      
     int p;      
@@ -23,8 +23,8 @@ typedef struct {
 
 // Function prototypes
 void *multiply_row(void *args);
-void multiply_single_thread(float **A, float **B, float **C, int m, int n, int p);
-void multiply_multi_thread(float **A, float **B, float **C, int m, int n, int p);
+void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
+void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 float **create_matrix(int rows, int cols);
 void free_matrix(float **matrix, int rows);
 void print_matrix(float **matrix, int rows, int cols, int num_type);
@@ -50,35 +50,35 @@ void *multiply_row(void *args) {
     int row = thread_args->row;
     
     for (int k = 0; k < thread_args->p; k++) {
-        thread_args->C[row][k] = 0.0;
+        thread_args->outputMatrix[row][k] = 0.0;
         for (int j = 0; j < thread_args->n; j++) {
-            thread_args->C[row][k] += thread_args->A[row][j] * thread_args->B[j][k];
+            thread_args->outputMatrix[row][k] += thread_args->matrixA[row][j] * thread_args->matrixB[j][k];
         }
     }
     pthread_exit(NULL);
 }
 
 // Single-threaded matrix multiplication
-void multiply_single_thread(float **A, float **B, float **C, int m, int n, int p) {
+void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p) {
     for (int i = 0; i < m; i++) {
         for (int k = 0; k < p; k++) {
-            C[i][k] = 0.0;
+            outputMatrix[i][k] = 0.0;
             for (int j = 0; j < n; j++) {
-                C[i][k] += A[i][j] * B[j][k];
+                outputMatrix[i][k] += matrixA[i][j] * matrixB[j][k];
             }
         }
     }
 }
 
 // Multi-threaded matrix multiplication
-void multiply_multi_thread(float **A, float **B, float **C, int m, int n, int p) {
+void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p) {
     pthread_t *threads = malloc(m * sizeof(pthread_t));
     ThreadArgs *thread_args = malloc(m * sizeof(ThreadArgs));
 
     for (int i = 0; i < m; i++) {
-        thread_args[i].A = A;
-        thread_args[i].B = B;
-        thread_args[i].C = C;
+        thread_args[i].matrixA = matrixA;
+        thread_args[i].matrixB = matrixB;
+        thread_args[i].outputMatrix = outputMatrix;
         thread_args[i].m = m;
         thread_args[i].n = n;
         thread_args[i].p = p;
@@ -191,8 +191,7 @@ int main(int argc, char *argv[]) {
     print_separator();
     
     // Check command line arguments
-    // Check command line arguments
-    if (argc != 5) {  // Changed from 4 to 5
+    if (argc != 5) {
         printf("Usage: %s <rows_A> <cols_A> <rows_B> <cols_B>\n", argv[0]);
         printf("Example: %s 3 4 4 2\n", argv[0]);
         return 1;
@@ -231,7 +230,8 @@ int main(int argc, char *argv[]) {
     // Initialize random seed
     srand(time(NULL));
 
-    float **A = NULL, **B = NULL, **C_single = NULL, **C_multi = NULL;
+    float **matrixA = NULL, **matrixB = NULL;
+    float **outputMatrix_single = NULL, **outputMatrix_multi = NULL;
     
     // Input method selection
     int choice;
@@ -249,11 +249,11 @@ int main(int argc, char *argv[]) {
         char filename[100];
         printf("\nEnter filename for matrix A: ");
         scanf("%s", filename);
-        A = read_matrix_from_file(m, n, filename);
+        matrixA = read_matrix_from_file(m, n, filename);
         
         printf("Enter filename for matrix B: ");
         scanf("%s", filename);
-        B = read_matrix_from_file(n, p, filename);
+        matrixB = read_matrix_from_file(n, p, filename);
     } 
     else if (choice == 2) {
         print_separator();
@@ -273,18 +273,17 @@ int main(int argc, char *argv[]) {
         clear_input_buffer();
 
         printf("\nGenerating random matrices...\n");
-        A = generate_random_matrix(m, n, num_type, min_val, max_val);
-        B = generate_random_matrix(n, p, num_type, min_val, max_val);
+        matrixA = generate_random_matrix(m, n, num_type, min_val, max_val);
+        matrixB = generate_random_matrix(n, p, num_type, min_val, max_val);
     }
     else {
         printf("Invalid choice\n");
         return 1;
     }
 
-    C_single = create_matrix(m, p);
-    C_multi = create_matrix(m, p);
+    outputMatrix_single = create_matrix(m, p);
+    outputMatrix_multi = create_matrix(m, p);
 
-    // Perform calculations and measure time
     // Perform calculations and measure time with multiple iterations
     struct timeval start, end;
     const int NUM_ITERATIONS = 10;  // Increased number of iterations for better accuracy
@@ -295,13 +294,13 @@ int main(int argc, char *argv[]) {
     printf("Calculating (Running %d iterations for accurate timing)...\n", NUM_ITERATIONS);
 
     // Warm up run to stabilize CPU frequency and cache
-    multiply_single_thread(A, B, C_single, m, n, p);
-    multiply_multi_thread(A, B, C_multi, m, n, p);
+    multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
+    multiply_multi_thread(matrixA, matrixB, outputMatrix_multi, m, n, p);
     
     // Multiple iterations for single thread
     for (int i = 0; i < NUM_ITERATIONS; i++) {
         gettimeofday(&start, NULL);
-        multiply_single_thread(A, B, C_single, m, n, p);
+        multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
         gettimeofday(&end, NULL);
         time_single += (end.tv_sec - start.tv_sec) + 
                       (end.tv_usec - start.tv_usec) / 1000000.0;
@@ -311,7 +310,7 @@ int main(int argc, char *argv[]) {
     // Multiple iterations for multi thread
     for (int i = 0; i < NUM_ITERATIONS; i++) {
         gettimeofday(&start, NULL);
-        multiply_multi_thread(A, B, C_multi, m, n, p);
+        multiply_multi_thread(matrixA, matrixB, outputMatrix_multi, m, n, p);
         gettimeofday(&end, NULL);
         time_multi += (end.tv_sec - start.tv_sec) + 
                      (end.tv_usec - start.tv_usec) / 1000000.0;
@@ -324,16 +323,16 @@ int main(int argc, char *argv[]) {
     print_separator();
     
     printf("\nMatrix A:\n");
-    print_matrix(A, m, n, num_type);
+    print_matrix(matrixA, m, n, num_type);
     
     printf("Matrix B:\n");
-    print_matrix(B, n, p, num_type);
+    print_matrix(matrixB, n, p, num_type);
     
     printf("Result (Single-threaded):\n");
-    print_matrix(C_single, m, p, num_type);
+    print_matrix(outputMatrix_single, m, p, num_type);
     
     printf("Result (Multi-threaded):\n");
-    print_matrix(C_multi, m, p, num_type);
+    print_matrix(outputMatrix_multi, m, p, num_type);
 
     // Print performance comparison
     print_separator();
@@ -344,7 +343,6 @@ int main(int argc, char *argv[]) {
     printf("Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
            time_multi, NUM_ITERATIONS);
     
-    
     if (time_multi > 0) {
         printf("Speedup Formula = (Single-threaded time / Multi-threaded time)\n");
         printf("              = (%.9f / %.9f)\n", time_single, time_multi);
@@ -353,11 +351,10 @@ int main(int argc, char *argv[]) {
     }
 
     // Free memory
-    free_matrix(A, m);
-    free_matrix(B, n);
-    free_matrix(C_single, m);
-    free_matrix(C_multi, m);
+    free_matrix(matrixA, m);
+    free_matrix(matrixB, n);
+    free_matrix(outputMatrix_single, m);
+    free_matrix(outputMatrix_multi, m);
 
     return 0;
-
 }
