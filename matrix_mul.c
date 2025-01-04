@@ -16,9 +16,9 @@ typedef struct {
     float **matrixA; // input matrix A
     float **matrixB; // input matrix B
     float **outputMatrix; // output matrix
-    int m;      // number of rows in matrix A
-    int n;      // number of columns in matrix A (same as rows in matrix B)
-    int p;      // number of columns in matrix B
+    int rowsA;      // number of rows in matrix A
+    int columnsA;      // number of columns in matrix A (same as rows in matrix B)
+    int columnsB;      // number of columns in matrix B
     int row;    // row number to calculate
 } ThreadParameters;
 
@@ -26,9 +26,9 @@ void *calculate_matrix_row(void *args);
 void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 void multiply_multiple_threads(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 float **create_matrix(int rows, int cols);
-void free_matrix(float **matrix, int rows);
+void free_matrix_memory(float **matrix, int rows);
 void print_matrix(float **matrix, int rows, int cols, int num_type);
-float **read_matrix_from_file(int rows, int cols, const char *filename);
+float **load_matrix_from_file(int rows, int cols, const char *filename);
 float **generate_random_matrix(int rows, int cols, int num_type, float min_val, float max_val);
 void clear_input_buffer();
 void seperateLine();
@@ -152,12 +152,12 @@ void *calculate_matrix_row(void *args) {
     int currentRow = threadData->row;
     
     // check each column in the result matrix for this row
-    for (int resultColumn = 0; resultColumn < threadData->p; resultColumn++) {
+    for (int resultColumn = 0; resultColumn < threadData->columnsB; resultColumn++) {
         // set the result cell to zero
         threadData->outputMatrix[currentRow][resultColumn] = 0.0;
         
         // calculate dot product for this result cell
-        for (int elementIndex = 0; elementIndex < threadData->n; elementIndex++) {
+        for (int elementIndex = 0; elementIndex < threadData->columnsA; elementIndex++) {
             float firstElement = threadData->matrixA[currentRow][elementIndex];
             float secondElement = threadData->matrixB[elementIndex][resultColumn];
             threadData->outputMatrix[currentRow][resultColumn] += firstElement * secondElement;
@@ -193,9 +193,9 @@ void multiply_multiple_threads(float **matrixA, float **matrixB, float **outputM
         threadParameters[i].matrixA = matrixA;
         threadParameters[i].matrixB = matrixB;
         threadParameters[i].outputMatrix = outputMatrix;
-        threadParameters[i].m = rowsA;
-        threadParameters[i].n = columnsA;
-        threadParameters[i].p = columnsB;
+        threadParameters[i].rowsA = rowsA;
+        threadParameters[i].columnsA = columnsA;
+        threadParameters[i].columnsB = columnsB;
         threadParameters[i].row = i;
         
         if (pthread_create(&threads[i], NULL, calculate_matrix_row, &threadParameters[i]) != 0) {
@@ -269,7 +269,7 @@ float **generate_random_matrix(int rows, int columns, int num_type, float minimu
                 matrix[i][j] = minimum + ((float)rand() / RAND_MAX) * range;
             }
             else { // fill the matrix with random integers and floating point numbers
-                if (rand() % 2) {
+                if (rand() % 2) { 
                     matrix[i][j] = (int)(minimum + (rand() % (int)(range + 1)));
                 } else {
                     matrix[i][j] = minimum + ((float)rand() / RAND_MAX) * range;
@@ -280,29 +280,37 @@ float **generate_random_matrix(int rows, int columns, int num_type, float minimu
     return matrix;
 }
 
-// Read matrix from file
-float **read_matrix_from_file(int rows, int cols, const char *filename) {
-    float **matrix = create_matrix(rows, cols);
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        printf("Error: Cannot open file %s\n", filename);
+// load matrix from text file
+float **load_matrix_from_file(int rows, int columns, const char *inputFilename) {
+    // create empty matrix with given rows and columns
+    float **matrix = create_matrix(rows, columns);
+
+    // open the file for reading
+    FILE *file = fopen(inputFilename, "r");
+
+    if (!file) { // check if the file is opened successfully
+        printf("Error: Cannot open file %s\n", inputFilename);
         exit(1);
     }
 
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
+    for (int i = 0; i < rows; i++) { // read each element of the matrix and store it in the matrix
+        for (int j = 0; j < columns; j++) {
             if (fscanf(file, "%f", &matrix[i][j]) != 1) {
-                printf("Error: Reading from file %s failed\n", filename);
+                printf("Error: Reading from file %s failed\n", inputFilename);
                 exit(1);
             }
         }
     }
-    fclose(file);
+
+    fclose(file); // close the file
+
     return matrix;
 }
 
 // Free matrix memory
-void free_matrix(float **matrix, int rows) {
+void free_matrix_memory(float **matrix, int rows) {
+
+    // free memory for each row
     for (int i = 0; i < rows; i++) {
         free(matrix[i]);
     }
@@ -311,44 +319,44 @@ void free_matrix(float **matrix, int rows) {
 
 int main(int argc, char *argv[]) {
     seperateLine();
-    printf("    Matrix Multiplication Program\n");
+    printf("    Matrix Multiplication Using Threads\n");
     seperateLine();
     
     // Check command line arguments
     if (argc != 5) {
-        printf("Usage: %s <rows_A> <cols_A> <rows_B> <cols_B>\n", argv[0]);
-        printf("Example: %s 3 4 4 2\n", argv[0]);
+        printf("Give the dimensions of the matrices in this format :\n%s <rows in A> <columns in A> <rows in B> <columns in B>\n", argv[0]);
+        printf("Example: %s 5 4 4 2\n", argv[0]);
         return 1;
     }
 
     // Get and validate matrix dimensions
-    int rows_A = atoi(argv[1]);
-    int cols_A = atoi(argv[2]);
-    int rows_B = atoi(argv[3]);
-    int cols_B = atoi(argv[4]);
+    int rowsA = atoi(argv[1]);
+    int columnsA = atoi(argv[2]);
+    int rowsB = atoi(argv[3]);
+    int columnsB = atoi(argv[4]);
 
     // Validate positive dimensions
-    if (rows_A <= 0 || cols_A <= 0 || rows_B <= 0 || cols_B <= 0) {
+    if (rowsA <= 0 || columnsA <= 0 || rowsB <= 0 || columnsB <= 0) {
         printf("Error: Matrix dimensions must be positive numbers\n");
         return 1;
     }
 
     // Check multiplication compatibility
-    if (cols_A != rows_B) {
+    if (columnsA != rowsB) {
         printf("Error: Matrices cannot be multiplied!\n");
         printf("Number of columns in Matrix A (%d) must equal number of rows in Matrix B (%d)\n", 
-               cols_A, rows_B);
+               columnsA, rowsB);
         return 1;
     }
 
     // Store dimensions for multiplication
-    int m = rows_A;
-    int n = cols_A;  // same as rows_B
-    int p = cols_B;
+    int r_A = rowsA;
+    int c_A = columnsA;  // same as rows_B
+    int c_B = columnsB;
 
     printf("\nMatrix Dimensions:\n");
-    printf("Matrix A: %d x %d\n", rows_A, cols_A);
-    printf("Matrix B: %d x %d\n", rows_B, cols_B);
+    printf("Matrix A: %d x %d\n", rowsA, columnsA);
+    printf("Matrix B: %d x %d\n", rowsB, columnsB);
     seperateLine();
 
     // Initialize random seed
@@ -373,11 +381,11 @@ int main(int argc, char *argv[]) {
         char filename[100];
         printf("\nEnter filename for matrix A: ");
         scanf("%s", filename);
-        matrixA = read_matrix_from_file(m, n, filename);
+        matrixA = load_matrix_from_file(r_A, c_A, filename);
         
         printf("Enter filename for matrix B: ");
         scanf("%s", filename);
-        matrixB = read_matrix_from_file(n, p, filename);
+        matrixB = load_matrix_from_file(c_A, c_B, filename);
     } 
     else if (choice == 2) {
         seperateLine();
@@ -397,16 +405,16 @@ int main(int argc, char *argv[]) {
         clear_input_buffer();
 
         printf("\nGenerating random matrices...\n");
-        matrixA = generate_random_matrix(m, n, num_type, min_val, max_val);
-        matrixB = generate_random_matrix(n, p, num_type, min_val, max_val);
+        matrixA = generate_random_matrix(r_A, c_A, num_type, min_val, max_val);
+        matrixB = generate_random_matrix(r_A, c_B, num_type, min_val, max_val);
     }
     else {
         printf("Invalid choice\n");
         return 1;
     }
 
-    outputMatrix_single = create_matrix(m, p);
-    outputMatrix_multi = create_matrix(m, p);
+    outputMatrix_single = create_matrix(r_A, c_B);
+    outputMatrix_multi = create_matrix(r_A, c_B);
 
     // Get number of iterations from user
     int num_iterations;
@@ -428,13 +436,13 @@ int main(int argc, char *argv[]) {
     printf("Calculating (Running %d iterations for accurate timing)...\n", num_iterations);
 
     // Warm up run to stabilize CPU frequency and cache
-    multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
-    multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, m, n, p);
+    multiply_single_thread(matrixA, matrixB, outputMatrix_single, r_A, c_A, c_B);
+    multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, r_A, c_A, c_B);
     
     // Multiple iterations for single thread
     for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
-        multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
+        multiply_single_thread(matrixA, matrixB, outputMatrix_single, r_A, c_A, c_B);
         gettimeofday(&end, NULL);
         time_single += (end.tv_sec - start.tv_sec) + 
                       (end.tv_usec - start.tv_usec) / 1000000.0;
@@ -444,7 +452,7 @@ int main(int argc, char *argv[]) {
     // Multiple iterations for multi thread
     for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
-        multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, m, n, p);
+        multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, r_A, c_A, c_B);
         gettimeofday(&end, NULL);
         time_multi += (end.tv_sec - start.tv_sec) + 
                      (end.tv_usec - start.tv_usec) / 1000000.0;
@@ -457,16 +465,16 @@ int main(int argc, char *argv[]) {
     seperateLine();
     
     printf("\nMatrix A:\n");
-    print_matrix(matrixA, m, n, num_type);
+    print_matrix(matrixA, r_A, c_A, num_type);
     
     printf("Matrix B:\n");
-    print_matrix(matrixB, n, p, num_type);
+    print_matrix(matrixB, c_A, c_B, num_type);
     
     printf("Result (Single-threaded):\n");
-    print_matrix(outputMatrix_single, m, p, num_type);
+    print_matrix(outputMatrix_single, r_A, c_B, num_type);
     
     printf("Result (Multi-threaded):\n");
-    print_matrix(outputMatrix_multi, m, p, num_type);
+    print_matrix(outputMatrix_multi, r_A, c_B, num_type);
 
     // Print performance comparison
     seperateLine();
@@ -501,15 +509,15 @@ int main(int argc, char *argv[]) {
         
         save_multiplication_results(full_filename, matrixA, matrixB, 
                             outputMatrix_single, outputMatrix_multi,
-                            m, n, p, num_type, time_single, time_multi, 
+                            r_A, c_A, c_B, num_type, time_single, time_multi, 
                             num_iterations);
     }
 
     // Free memory
-    free_matrix(matrixA, m);
-    free_matrix(matrixB, n);
-    free_matrix(outputMatrix_single, m);
-    free_matrix(outputMatrix_multi, m);
+    free_matrix_memory(matrixA, r_A);
+    free_matrix_memory(matrixB, c_A);
+    free_matrix_memory(outputMatrix_single, r_A);
+    free_matrix_memory(outputMatrix_multi, r_A);
 
     return 0;
 }
