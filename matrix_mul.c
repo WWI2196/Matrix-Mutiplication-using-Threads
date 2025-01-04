@@ -22,7 +22,7 @@ typedef struct {
     int row;    // row number to calculate
 } ThreadParameters;
 
-void *multiply_row(void *args);
+void *calculate_matrix_row(void *args);
 void multiply_single_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatrix, int m, int n, int p);
 float **create_matrix(int rows, int cols);
@@ -31,8 +31,8 @@ void print_matrix(float **matrix, int rows, int cols, int num_type);
 float **read_matrix_from_file(int rows, int cols, const char *filename);
 float **generate_random_matrix(int rows, int cols, int num_type, float min_val, float max_val);
 void clear_input_buffer();
-void print_separator();
-void write_results_to_file(const char *filename, float **matrixA, float **matrixB, float **outputMatrix_single, float **outputMatrix_multi,int m, int n, int p, int num_type, double time_single, double time_multi, int num_iterations);
+void seperateLine();
+void save_multiplication_results(const char *filename, float **matrixA, float **matrixB, float **outputMatrix_single, float **outputMatrix_multi,int m, int n, int p, int num_type, double time_single, double time_multi, int num_iterations);
 
 // clear input buffer after scanf operations
 void clear_input_buffer() {
@@ -47,19 +47,16 @@ void clear_input_buffer() {
     } while (1); // repeat until buffer is empty
 }
 
-// Print separator line
-void print_separator() {
+void seperateLine() {
     printf("\n----------------------------------------\n");
 }
 
-// Write results to file function
-void write_results_to_file(const char *filename, float **matrixA, float **matrixB, 
-                          float **outputMatrix_single, float **outputMatrix_multi,
-                          int m, int n, int p, int num_type, 
-                          double time_single, double time_multi, int num_iterations) {
-    FILE *file = fopen(filename, "w");
+// write matrix multiplication results to text file
+void save_multiplication_results(const char *outputFilePath, float **matrixA, float **matrixB, float **singleThreadResult, float **multiThreadResult,int rowsA, int columsA, int columsB, int num_type, double singleThreadTime, double multiThreadTime, int num_iterations) {
+    
+    FILE *file = fopen(outputFilePath, "w");
     if (!file) {
-        printf("Error: Cannot create output file %s\n", filename);
+        printf("Error: Cannot create output file %s\n", outputFilePath);
         return;
     }
 
@@ -67,13 +64,14 @@ void write_results_to_file(const char *filename, float **matrixA, float **matrix
     fprintf(file, "----------------------------------------\n\n");
 
     fprintf(file, "Matrix Dimensions:\n");
-    fprintf(file, "Matrix A: %d x %d\n", m, n);
-    fprintf(file, "Matrix B: %d x %d\n", n, p);
+    fprintf(file, "Matrix A: %d x %d\n", rowsA, columsA);
+    fprintf(file, "Matrix B: %d x %d\n", columsA, columsB);
     fprintf(file, "----------------------------------------\n\n");
 
+    // print the matrix A to the file
     fprintf(file, "Matrix A:\n");
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
+    for (int i = 0; i < rowsA; i++) {
+        for (int j = 0; j < columsA; j++) {
             if (num_type == TYPE_INTEGER) {
                 fprintf(file, "%4d ", (int)matrixA[i][j]);
             } else {
@@ -84,9 +82,10 @@ void write_results_to_file(const char *filename, float **matrixA, float **matrix
     }
     fprintf(file, "\n");
 
+    // print the matrix B to the file
     fprintf(file, "Matrix B:\n");
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < p; j++) {
+    for (int i = 0; i < columsA; i++) {
+        for (int j = 0; j < columsB; j++) {
             if (num_type == TYPE_INTEGER) {
                 fprintf(file, "%4d ", (int)matrixB[i][j]);
             } else {
@@ -97,61 +96,74 @@ void write_results_to_file(const char *filename, float **matrixA, float **matrix
     }
     fprintf(file, "\n");
 
+    // print the results to the file of single thread
     fprintf(file, "Result (Single-threaded):\n");
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < p; j++) {
+    for (int i = 0; i < rowsA; i++) {
+        for (int j = 0; j < columsB; j++) {
             if (num_type == TYPE_INTEGER) {
-                fprintf(file, "%4d ", (int)outputMatrix_single[i][j]);
+                fprintf(file, "%4d ", (int)singleThreadResult[i][j]);
             } else {
-                fprintf(file, "%7.3f ", outputMatrix_single[i][j]);
+                fprintf(file, "%7.3f ", singleThreadResult[i][j]);
             }
         }
         fprintf(file, "\n");
     }
     fprintf(file, "\n");
 
+    // print the results to the file of multi thread
     fprintf(file, "Result (Multi-threaded):\n");
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < p; j++) {
+    for (int i = 0; i < rowsA; i++) {
+        for (int j = 0; j < columsB; j++) {
             if (num_type == TYPE_INTEGER) {
-                fprintf(file, "%4d ", (int)outputMatrix_multi[i][j]);
+                fprintf(file, "%4d ", (int)multiThreadResult[i][j]);
             } else {
-                fprintf(file, "%7.3f ", outputMatrix_multi[i][j]);
+                fprintf(file, "%7.3f ", multiThreadResult[i][j]);
             }
         }
         fprintf(file, "\n");
     }
     fprintf(file, "\n");
 
+    // print the performance comparison to the file
     fprintf(file, "Performance Comparison\n");
     fprintf(file, "----------------------------------------\n");
     fprintf(file, "Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
-            time_single, num_iterations);
+            singleThreadTime, num_iterations);
     fprintf(file, "Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
-            time_multi, num_iterations);
+            multiThreadTime, num_iterations);
     
-    if (time_multi > 0) {
+    if (multiThreadTime > 0) {
         fprintf(file, "Speedup Formula = (Single-threaded time / Multi-threaded time)\n");
-        fprintf(file, "              = (%.9f / %.9f)\n", time_single, time_multi);
-        fprintf(file, "Speedup: %.3fx\n", time_single/time_multi);
-        fprintf(file, "Performance improvement: %.2f%%\n", ((time_single/time_multi) - 1) * 100);
+        fprintf(file, "              = (%.9f / %.9f)\n", singleThreadTime, multiThreadTime);
+        fprintf(file, "Speedup: %.3fx\n", singleThreadTime/multiThreadTime);
+        fprintf(file, "Performance improvement: %.2f%%\n", ((singleThreadTime/multiThreadTime) - 1) * 100);
     }
 
     fclose(file);
-    printf("\nResults have been written to %s\n", filename);
+    printf("\nResults have been written to %s\n", outputFilePath);
 }
 
-// Thread function to multiply one row
-void *multiply_row(void *args) {
-    ThreadParameters *thread_args = (ThreadParameters *)args;
-    int row = thread_args->row;
+// thread function to multiply one row
+void *calculate_matrix_row(void *args) {
+    // cast the input arguments to thread parameter structure
+    ThreadParameters *threadData = (ThreadParameters *)args;
     
-    for (int k = 0; k < thread_args->p; k++) {
-        thread_args->outputMatrix[row][k] = 0.0;
-        for (int j = 0; j < thread_args->n; j++) {
-            thread_args->outputMatrix[row][k] += thread_args->matrixA[row][j] * thread_args->matrixB[j][k];
+    // get the row number of the thread will process
+    int currentRow = threadData->row;
+    
+    // check each column in the result matrix for this row
+    for (int resultColumn = 0; resultColumn < threadData->p; resultColumn++) {
+        // set the result cell to zero
+        threadData->outputMatrix[currentRow][resultColumn] = 0.0;
+        
+        // calculate dot product for this result cell
+        for (int elementIndex = 0; elementIndex < threadData->n; elementIndex++) {
+            float firstElement = threadData->matrixA[currentRow][elementIndex];
+            float secondElement = threadData->matrixB[elementIndex][resultColumn];
+            threadData->outputMatrix[currentRow][resultColumn] += firstElement * secondElement;
         }
     }
+
     pthread_exit(NULL);
 }
 
@@ -181,7 +193,7 @@ void multiply_multi_thread(float **matrixA, float **matrixB, float **outputMatri
         thread_args[i].p = p;
         thread_args[i].row = i;
         
-        if (pthread_create(&threads[i], NULL, multiply_row, &thread_args[i]) != 0) {
+        if (pthread_create(&threads[i], NULL, calculate_matrix_row, &thread_args[i]) != 0) {
             printf("Error creating thread %d\n", i);
             exit(1);
         }
@@ -283,9 +295,9 @@ void free_matrix(float **matrix, int rows) {
 }
 
 int main(int argc, char *argv[]) {
-    print_separator();
+    seperateLine();
     printf("    Matrix Multiplication Program\n");
-    print_separator();
+    seperateLine();
     
     // Check command line arguments
     if (argc != 5) {
@@ -322,7 +334,7 @@ int main(int argc, char *argv[]) {
     printf("\nMatrix Dimensions:\n");
     printf("Matrix A: %d x %d\n", rows_A, cols_A);
     printf("Matrix B: %d x %d\n", rows_B, cols_B);
-    print_separator();
+    seperateLine();
 
     // Initialize random seed
     srand(time(NULL));
@@ -353,7 +365,7 @@ int main(int argc, char *argv[]) {
         matrixB = read_matrix_from_file(n, p, filename);
     } 
     else if (choice == 2) {
-        print_separator();
+        seperateLine();
         printf("Choose number type for random generation:\n");
         printf("1. Integers only\n");
         printf("2. Floating-point numbers\n");
@@ -397,7 +409,7 @@ int main(int argc, char *argv[]) {
     double time_single = 0.0;
     double time_multi = 0.0;
     
-    print_separator();
+    seperateLine();
     printf("Calculating (Running %d iterations for accurate timing)...\n", num_iterations);
 
     // Warm up run to stabilize CPU frequency and cache
@@ -425,9 +437,9 @@ int main(int argc, char *argv[]) {
     time_multi /= num_iterations;
 
     // Print results
-    print_separator();
+    seperateLine();
     printf("Results\n");
-    print_separator();
+    seperateLine();
     
     printf("\nMatrix A:\n");
     print_matrix(matrixA, m, n, num_type);
@@ -442,9 +454,9 @@ int main(int argc, char *argv[]) {
     print_matrix(outputMatrix_multi, m, p, num_type);
 
     // Print performance comparison
-    print_separator();
+    seperateLine();
     printf("Performance Comparison\n");
-    print_separator();
+    seperateLine();
     printf("Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
            time_single, num_iterations);
     printf("Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
@@ -472,7 +484,7 @@ int main(int argc, char *argv[]) {
         char full_filename[104];  // Extra space for ".txt" and null terminator
         snprintf(full_filename, sizeof(full_filename), "%s.txt", output_filename);
         
-        write_results_to_file(full_filename, matrixA, matrixB, 
+        save_multiplication_results(full_filename, matrixA, matrixB, 
                             outputMatrix_single, outputMatrix_multi,
                             m, n, p, num_type, time_single, time_multi, 
                             num_iterations);
