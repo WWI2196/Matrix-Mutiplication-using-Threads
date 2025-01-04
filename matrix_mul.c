@@ -322,26 +322,26 @@ int main(int argc, char *argv[]) {
     printf("    Matrix Multiplication Using Threads\n");
     seperateLine();
     
-    // Check command line arguments
+    // check command line for 5 arguments
     if (argc != 5) {
         printf("Give the dimensions of the matrices in this format :\n%s <rows in A> <columns in A> <rows in B> <columns in B>\n", argv[0]);
         printf("Example: %s 5 4 4 2\n", argv[0]);
         return 1;
     }
 
-    // Get and validate matrix dimensions
+    // get and validate matrix dimensions
     int rowsA = atoi(argv[1]);
     int columnsA = atoi(argv[2]);
     int rowsB = atoi(argv[3]);
     int columnsB = atoi(argv[4]);
 
-    // Validate positive dimensions
+    // check if the dimensions are valid
     if (rowsA <= 0 || columnsA <= 0 || rowsB <= 0 || columnsB <= 0) {
         printf("Error: Matrix dimensions must be positive numbers\n");
         return 1;
     }
 
-    // Check multiplication compatibility
+    // check if the matrices can be multiplied
     if (columnsA != rowsB) {
         printf("Error: Matrices cannot be multiplied!\n");
         printf("Number of columns in Matrix A (%d) must equal number of rows in Matrix B (%d)\n", 
@@ -349,9 +349,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Store dimensions for multiplication
+    // store dimensions for multiplication
     int r_A = rowsA;
-    int c_A = columnsA;  // same as rows_B
+    int c_A = columnsA;  
     int c_B = columnsB;
 
     printf("\nMatrix Dimensions:\n");
@@ -359,13 +359,13 @@ int main(int argc, char *argv[]) {
     printf("Matrix B: %d x %d\n", rowsB, columnsB);
     seperateLine();
 
-    // Initialize random seed
+    // initialize random seed
     srand(time(NULL));
 
     float **matrixA = NULL, **matrixB = NULL;
     float **outputMatrix_single = NULL, **outputMatrix_multi = NULL;
     
-    // Input method selection
+    // input method selection
     int choice;
     printf("\nChoose input method:\n");
     printf("1. Read matrices from files\n");
@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
     clear_input_buffer();
 
     int num_type = TYPE_FLOAT;
-    float min_val = 0.0, max_val = 10.0;
+    float minimum = 0.0, maximum = 10.0;
 
     if (choice == 1) {
         char filename[100];
@@ -399,14 +399,14 @@ int main(int argc, char *argv[]) {
 
         printf("\nEnter range for random numbers:\n");
         printf("Minimum value: ");
-        scanf("%f", &min_val);
+        scanf("%f", &minimum);
         printf("Maximum value: ");
-        scanf("%f", &max_val);
+        scanf("%f", &maximum);
         clear_input_buffer();
 
         printf("\nGenerating random matrices...\n");
-        matrixA = generate_random_matrix(r_A, c_A, num_type, min_val, max_val);
-        matrixB = generate_random_matrix(r_A, c_B, num_type, min_val, max_val);
+        matrixA = generate_random_matrix(r_A, c_A, num_type, minimum, maximum);
+        matrixB = generate_random_matrix(r_A, c_B, num_type, minimum, maximum);
     }
     else {
         printf("Invalid choice\n");
@@ -416,9 +416,9 @@ int main(int argc, char *argv[]) {
     outputMatrix_single = create_matrix(r_A, c_B);
     outputMatrix_multi = create_matrix(r_A, c_B);
 
-    // Get number of iterations from user
+    // get number of iterations from user
     int num_iterations;
-    printf("\nEnter number of iterations for timing accuracy (recommended: 10 or more): ");
+    printf("\nEnter number of iterations for timing accuracy: ");
     scanf("%d", &num_iterations);
     clear_input_buffer();
     
@@ -427,7 +427,7 @@ int main(int argc, char *argv[]) {
         num_iterations = 10;
     }
 
-    // Perform calculations and measure time with multiple iterations
+    // do the calculations and measure time with multiple iterations
     struct timeval start, end;
     double time_single = 0.0;
     double time_multi = 0.0;
@@ -435,11 +435,10 @@ int main(int argc, char *argv[]) {
     seperateLine();
     printf("Calculating (Running %d iterations for accurate timing)...\n", num_iterations);
 
-    // Warm up run to stabilize CPU frequency and cache
     multiply_single_thread(matrixA, matrixB, outputMatrix_single, r_A, c_A, c_B);
     multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, r_A, c_A, c_B);
     
-    // Multiple iterations for single thread
+    // multiple iterations for single thread
     for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
         multiply_single_thread(matrixA, matrixB, outputMatrix_single, r_A, c_A, c_B);
@@ -449,7 +448,8 @@ int main(int argc, char *argv[]) {
     }
     time_single /= num_iterations;
 
-    // Multiple iterations for multi thread
+
+    // multiple iterations for multi thread
     for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
         multiply_multiple_threads(matrixA, matrixB, outputMatrix_multi, r_A, c_A, c_B);
@@ -459,7 +459,8 @@ int main(int argc, char *argv[]) {
     }
     time_multi /= num_iterations;
 
-    // Print results
+
+    // print the results
     seperateLine();
     printf("Results\n");
     seperateLine();
@@ -476,7 +477,7 @@ int main(int argc, char *argv[]) {
     printf("Result (Multi-threaded):\n");
     print_matrix(outputMatrix_multi, r_A, c_B, num_type);
 
-    // Print performance comparison
+    // print performance comparison
     seperateLine();
     printf("Performance Comparison\n");
     seperateLine();
@@ -492,7 +493,7 @@ int main(int argc, char *argv[]) {
         printf("Performance improvement: %.2f%%\n", ((time_single/time_multi) - 1) * 100);
     }
 
-    // Ask user if they want to save results to file
+    // if user want to save the results to a file
     printf("\nDo you want to save the results to a file? (1: Yes, 0: No): ");
     int save_choice;
     scanf("%d", &save_choice);
@@ -503,17 +504,14 @@ int main(int argc, char *argv[]) {
         printf("Enter output filename (without .txt extension): ");
         scanf("%s", output_filename);
         
-        // Add .txt extension to the filename
-        char full_filename[104];  // Extra space for ".txt" and null terminator
+        // add .txt extension to the end of the filename 
+        char full_filename[104];
         snprintf(full_filename, sizeof(full_filename), "%s.txt", output_filename);
         
-        save_multiplication_results(full_filename, matrixA, matrixB, 
-                            outputMatrix_single, outputMatrix_multi,
-                            r_A, c_A, c_B, num_type, time_single, time_multi, 
-                            num_iterations);
+        save_multiplication_results(full_filename, matrixA, matrixB, outputMatrix_single, outputMatrix_multi,r_A, c_A, c_B, num_type, time_single, time_multi, num_iterations);
     }
 
-    // Free memory
+    // after the calculations free the memory
     free_matrix_memory(matrixA, r_A);
     free_matrix_memory(matrixB, c_A);
     free_matrix_memory(outputMatrix_single, r_A);
