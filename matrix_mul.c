@@ -32,6 +32,10 @@ float **read_matrix_from_file(int rows, int cols, const char *filename);
 float **generate_random_matrix(int rows, int cols, int num_type, float min_val, float max_val);
 void clear_input_buffer();
 void print_separator();
+void write_results_to_file(const char *filename, float **matrixA, float **matrixB, 
+                          float **outputMatrix_single, float **outputMatrix_multi,
+                          int m, int n, int p, int num_type, 
+                          double time_single, double time_multi, int num_iterations);
 
 // Clear input buffer function
 void clear_input_buffer() {
@@ -42,6 +46,95 @@ void clear_input_buffer() {
 // Print separator line
 void print_separator() {
     printf("\n----------------------------------------\n");
+}
+
+// Write results to file function
+void write_results_to_file(const char *filename, float **matrixA, float **matrixB, 
+                          float **outputMatrix_single, float **outputMatrix_multi,
+                          int m, int n, int p, int num_type, 
+                          double time_single, double time_multi, int num_iterations) {
+    FILE *file = fopen(filename, "w");
+    if (!file) {
+        printf("Error: Cannot create output file %s\n", filename);
+        return;
+    }
+
+    fprintf(file, "Matrix Multiplication Results\n");
+    fprintf(file, "----------------------------------------\n\n");
+
+    fprintf(file, "Matrix Dimensions:\n");
+    fprintf(file, "Matrix A: %d x %d\n", m, n);
+    fprintf(file, "Matrix B: %d x %d\n", n, p);
+    fprintf(file, "----------------------------------------\n\n");
+
+    fprintf(file, "Matrix A:\n");
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (num_type == TYPE_INTEGER) {
+                fprintf(file, "%4d ", (int)matrixA[i][j]);
+            } else {
+                fprintf(file, "%7.3f ", matrixA[i][j]);
+            }
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "\n");
+
+    fprintf(file, "Matrix B:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < p; j++) {
+            if (num_type == TYPE_INTEGER) {
+                fprintf(file, "%4d ", (int)matrixB[i][j]);
+            } else {
+                fprintf(file, "%7.3f ", matrixB[i][j]);
+            }
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "\n");
+
+    fprintf(file, "Result (Single-threaded):\n");
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < p; j++) {
+            if (num_type == TYPE_INTEGER) {
+                fprintf(file, "%4d ", (int)outputMatrix_single[i][j]);
+            } else {
+                fprintf(file, "%7.3f ", outputMatrix_single[i][j]);
+            }
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "\n");
+
+    fprintf(file, "Result (Multi-threaded):\n");
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < p; j++) {
+            if (num_type == TYPE_INTEGER) {
+                fprintf(file, "%4d ", (int)outputMatrix_multi[i][j]);
+            } else {
+                fprintf(file, "%7.3f ", outputMatrix_multi[i][j]);
+            }
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "\n");
+
+    fprintf(file, "Performance Comparison\n");
+    fprintf(file, "----------------------------------------\n");
+    fprintf(file, "Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
+            time_single, num_iterations);
+    fprintf(file, "Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
+            time_multi, num_iterations);
+    
+    if (time_multi > 0) {
+        fprintf(file, "Speedup Formula = (Single-threaded time / Multi-threaded time)\n");
+        fprintf(file, "              = (%.9f / %.9f)\n", time_single, time_multi);
+        fprintf(file, "Speedup: %.3fx\n", time_single/time_multi);
+        fprintf(file, "Performance improvement: %.2f%%\n", ((time_single/time_multi) - 1) * 100);
+    }
+
+    fclose(file);
+    printf("\nResults have been written to %s\n", filename);
 }
 
 // Thread function to multiply one row
@@ -284,38 +377,48 @@ int main(int argc, char *argv[]) {
     outputMatrix_single = create_matrix(m, p);
     outputMatrix_multi = create_matrix(m, p);
 
+    // Get number of iterations from user
+    int num_iterations;
+    printf("\nEnter number of iterations for timing accuracy (recommended: 10 or more): ");
+    scanf("%d", &num_iterations);
+    clear_input_buffer();
+    
+    if (num_iterations <= 0) {
+        printf("Error: Number of iterations must be positive. Using default value of 10.\n");
+        num_iterations = 10;
+    }
+
     // Perform calculations and measure time with multiple iterations
     struct timeval start, end;
-    const int NUM_ITERATIONS = 10;  // Increased number of iterations for better accuracy
     double time_single = 0.0;
     double time_multi = 0.0;
     
     print_separator();
-    printf("Calculating (Running %d iterations for accurate timing)...\n", NUM_ITERATIONS);
+    printf("Calculating (Running %d iterations for accurate timing)...\n", num_iterations);
 
     // Warm up run to stabilize CPU frequency and cache
     multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
     multiply_multi_thread(matrixA, matrixB, outputMatrix_multi, m, n, p);
     
     // Multiple iterations for single thread
-    for (int i = 0; i < NUM_ITERATIONS; i++) {
+    for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
         multiply_single_thread(matrixA, matrixB, outputMatrix_single, m, n, p);
         gettimeofday(&end, NULL);
         time_single += (end.tv_sec - start.tv_sec) + 
                       (end.tv_usec - start.tv_usec) / 1000000.0;
     }
-    time_single /= NUM_ITERATIONS;
+    time_single /= num_iterations;
 
     // Multiple iterations for multi thread
-    for (int i = 0; i < NUM_ITERATIONS; i++) {
+    for (int i = 0; i < num_iterations; i++) {
         gettimeofday(&start, NULL);
         multiply_multi_thread(matrixA, matrixB, outputMatrix_multi, m, n, p);
         gettimeofday(&end, NULL);
         time_multi += (end.tv_sec - start.tv_sec) + 
                      (end.tv_usec - start.tv_usec) / 1000000.0;
     }
-    time_multi /= NUM_ITERATIONS;
+    time_multi /= num_iterations;
 
     // Print results
     print_separator();
@@ -339,15 +442,36 @@ int main(int argc, char *argv[]) {
     printf("Performance Comparison\n");
     print_separator();
     printf("Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
-           time_single, NUM_ITERATIONS);
+           time_single, num_iterations);
     printf("Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
-           time_multi, NUM_ITERATIONS);
+           time_multi, num_iterations);
     
     if (time_multi > 0) {
         printf("Speedup Formula = (Single-threaded time / Multi-threaded time)\n");
         printf("              = (%.9f / %.9f)\n", time_single, time_multi);
         printf("Speedup: %.3fx\n", time_single/time_multi);
         printf("Performance improvement: %.2f%%\n", ((time_single/time_multi) - 1) * 100);
+    }
+
+    // Ask user if they want to save results to file
+    printf("\nDo you want to save the results to a file? (1: Yes, 0: No): ");
+    int save_choice;
+    scanf("%d", &save_choice);
+    clear_input_buffer();
+
+    if (save_choice == 1) {
+        char output_filename[100];
+        printf("Enter output filename (without .txt extension): ");
+        scanf("%s", output_filename);
+        
+        // Add .txt extension to the filename
+        char full_filename[104];  // Extra space for ".txt" and null terminator
+        snprintf(full_filename, sizeof(full_filename), "%s.txt", output_filename);
+        
+        write_results_to_file(full_filename, matrixA, matrixB, 
+                            outputMatrix_single, outputMatrix_multi,
+                            m, n, p, num_type, time_single, time_multi, 
+                            num_iterations);
     }
 
     // Free memory
