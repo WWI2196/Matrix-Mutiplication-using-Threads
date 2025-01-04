@@ -48,7 +48,7 @@ void clear_input_buffer() {
 }
 
 void seperateLine() {
-    printf("\n----------------------------------------\n");
+    printf("\n--------------------------------------------\n");
 }
 
 // write matrix multiplication results to text file
@@ -67,6 +67,25 @@ void save_multiplication_results(const char *outputFilePath, float **matrixA, fl
     fprintf(file, "Matrix A: %d x %d\n", rowsA, columsA);
     fprintf(file, "Matrix B: %d x %d\n", columsA, columsB);
     fprintf(file, "----------------------------------------\n\n");
+
+    // print the performance comparison to the file
+    fprintf(file, "Performance Comparison\n");
+    fprintf(file, "----------------------------------------\n");
+    fprintf(file, "Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
+            singleThreadTime, num_iterations);
+    fprintf(file, "Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
+            multiThreadTime, num_iterations);
+    
+    if (multiThreadTime > 0) {
+        fprintf(file, "Speedup Formula = (Single-threaded time / Multi-threaded time)\n");
+        fprintf(file, "              = (%.9f / %.9f)\n", singleThreadTime, multiThreadTime);
+        fprintf(file, "Speedup: %.3fx\n", singleThreadTime/multiThreadTime);
+        fprintf(file, "Performance improvement: %.2f%%\n", ((singleThreadTime/multiThreadTime) - 1) * 100);
+    }
+
+    // print that the follwing bellow are the matrices and results
+    fprintf(file, "\n----------------------------------------\n\n");
+    fprintf(file, "Matrices and Results\n");
 
     // print the matrix A to the file
     fprintf(file, "Matrix A:\n");
@@ -123,21 +142,6 @@ void save_multiplication_results(const char *outputFilePath, float **matrixA, fl
         fprintf(file, "\n");
     }
     fprintf(file, "\n");
-
-    // print the performance comparison to the file
-    fprintf(file, "Performance Comparison\n");
-    fprintf(file, "----------------------------------------\n");
-    fprintf(file, "Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
-            singleThreadTime, num_iterations);
-    fprintf(file, "Multi-threaded time:  %.9f seconds (averaged over %d runs)\n", 
-            multiThreadTime, num_iterations);
-    
-    if (multiThreadTime > 0) {
-        fprintf(file, "Speedup Formula = (Single-threaded time / Multi-threaded time)\n");
-        fprintf(file, "              = (%.9f / %.9f)\n", singleThreadTime, multiThreadTime);
-        fprintf(file, "Speedup: %.3fx\n", singleThreadTime/multiThreadTime);
-        fprintf(file, "Performance improvement: %.2f%%\n", ((singleThreadTime/multiThreadTime) - 1) * 100);
-    }
 
     fclose(file);
     printf("\nResults have been written to %s\n", outputFilePath);
@@ -391,8 +395,8 @@ int main(int argc, char *argv[]) {
         seperateLine();
         printf("Choose number type for random generation:\n");
         printf("1. Integers only\n");
-        printf("2. Floating-point numbers\n");
-        printf("3. Mixed (both integers and floating-point)\n");
+        printf("2. Floating point numbers\n");
+        printf("3. Mixed (both integers and floating point numbers)\n");
         printf("Enter choice (1-3): ");
         scanf("%d", &num_type);
         clear_input_buffer();
@@ -406,7 +410,7 @@ int main(int argc, char *argv[]) {
 
         printf("\nGenerating random matrices...\n");
         matrixA = generate_random_matrix(r_A, c_A, num_type, minimum, maximum);
-        matrixB = generate_random_matrix(r_A, c_B, num_type, minimum, maximum);
+        matrixB = generate_random_matrix(c_A, c_B, num_type, minimum, maximum);
     }
     else {
         printf("Invalid choice\n");
