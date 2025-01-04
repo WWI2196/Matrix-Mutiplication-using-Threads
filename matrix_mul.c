@@ -214,16 +214,19 @@ void multiply_multiple_threads(float **matrixA, float **matrixB, float **outputM
     free(threadParameters);
 }
 
-// Create matrix
-float **create_matrix(int rows, int cols) {
+// allocates memory for a 2D matrix and initializes it
+float **create_matrix(int rows, int columns) {
+
+    // allocate memory for the rows
     float **matrix = malloc(rows * sizeof(float *));
+
     if (matrix == NULL) {
         printf("Error: Memory allocation failed\n");
         exit(1);
     }
     
     for (int i = 0; i < rows; i++) {
-        matrix[i] = malloc(cols * sizeof(float));
+        matrix[i] = malloc(columns * sizeof(float));
         if (matrix[i] == NULL) {
             printf("Error: Memory allocation failed\n");
             exit(1);
@@ -232,10 +235,12 @@ float **create_matrix(int rows, int cols) {
     return matrix;
 }
 
-// Print matrix with appropriate formatting based on number type
-void print_matrix(float **matrix, int rows, int cols, int num_type) {
+// print the matrix 
+void print_matrix(float **matrix, int rows, int columns, int num_type) {
+
+    // print each element of the matrix
     for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
+        for (int j = 0; j < columns; j++) {
             if (num_type == TYPE_INTEGER) {
                 printf("%4d ", (int)matrix[i][j]);
             } else {
@@ -248,23 +253,26 @@ void print_matrix(float **matrix, int rows, int cols, int num_type) {
 }
 
 // Generate random matrix with specified number type and range
-float **generate_random_matrix(int rows, int cols, int num_type, float min_val, float max_val) {
-    float **matrix = create_matrix(rows, cols);
-    float range = max_val - min_val;
+float **generate_random_matrix(int rows, int columns, int num_type, float minimum, float maximum) {
+    // create empty matrix with given rows and columns
+    float **matrix = create_matrix(rows, columns);
+
+    float range = maximum - minimum;
     
+    // fill the matrix with random numbers
     for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (num_type == TYPE_INTEGER) {
-                matrix[i][j] = (int)(min_val + (rand() % (int)(range + 1)));
+        for (int j = 0; j < columns; j++) {
+            if (num_type == TYPE_INTEGER) { // fill the matrix with random integers
+                matrix[i][j] = (int)(minimum + (rand() % (int)(range + 1)));
             } 
-            else if (num_type == TYPE_FLOAT) {
-                matrix[i][j] = min_val + ((float)rand() / RAND_MAX) * range;
+            else if (num_type == TYPE_FLOAT) { // fill the matrix with random floating point numbers
+                matrix[i][j] = minimum + ((float)rand() / RAND_MAX) * range;
             }
-            else { // TYPE_MIXED
+            else { // fill the matrix with random integers and floating point numbers
                 if (rand() % 2) {
-                    matrix[i][j] = (int)(min_val + (rand() % (int)(range + 1)));
+                    matrix[i][j] = (int)(minimum + (rand() % (int)(range + 1)));
                 } else {
-                    matrix[i][j] = min_val + ((float)rand() / RAND_MAX) * range;
+                    matrix[i][j] = minimum + ((float)rand() / RAND_MAX) * range;
                 }
             }
         }
