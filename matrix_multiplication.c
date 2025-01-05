@@ -169,7 +169,7 @@ void *calculate_matrix_row(void *args) {
         }
     }
 
-    pthread_exit(NULL);
+    pthread_exit(NULL); // exit the thread
 }
 
 // do the matrix multiplication using a single thread
