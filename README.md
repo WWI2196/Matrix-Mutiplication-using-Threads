@@ -140,23 +140,23 @@ Example custom matrices:
 
 For quick testing with random values:
 
-```bash
-# Example: Create 4x3 and 3x5 matrices
-./matrix_multiplication 4 3 3 5
-
-# Choose random generation
-Enter choice (1 or 2): 2
-
-# Available number types:
-# 1. Integers only (e.g., 1, 2, 3)
-# 2. Floating point (e.g., 1.5, 2.7, 3.9)
-# 3. Mixed (combination of both)
-Enter choice (1-3): 1
-
-# Set your desired range
-Minimum value: 1
-Maximum value: 100
-```
+   ```bash
+   # Example: Create 4x3 and 3x5 matrices
+   ./matrix_multiplication 4 3 3 5
+   
+   # Choose random generation
+   Enter choice (1 or 2): 2
+   
+   # Available number types:
+   # 1. Integers only (e.g., 1, 2, 3)
+   # 2. Floating point (e.g., 1.5, 2.7, 3.9)
+   # 3. Mixed (combination of both)
+   Enter choice (1-3): 1
+   
+   # Set your desired range
+   Minimum value: 1
+   Maximum value: 100
+   ```
 
 The program will:
 1. Generate random matrices within your specifications
@@ -244,14 +244,14 @@ The program's performance characteristics vary based on matrix size and system c
 
 The program implements comprehensive error checking:
 
-```c
-if (columnsA != rowsB) {
-    printf("Error: Matrices cannot be multiplied!\n");
-    printf("Number of columns in Matrix A (%d) must equal number of rows in Matrix B (%d)\n", 
-           columnsA, rowsB);
-    return 1;
-}
-```
+   ```c
+   if (columnsA != rowsB) {
+       printf("Error: Matrices cannot be multiplied!\n");
+       printf("Number of columns in Matrix A (%d) must equal number of rows in Matrix B (%d)\n", 
+              columnsA, rowsB);
+       return 1;
+   }
+   ```
 
 The system validates:
 - Matrix dimensions and multiplicability
@@ -266,19 +266,19 @@ Each operation includes appropriate error messages and graceful error handling t
 
 The program implements sophisticated timing mechanisms to accurately measure performance differences:
 
-```c
-struct timeval start, end;
-double time_single = 0.0, time_multi = 0.0;
-
-// Multiple iterations for accurate timing
-for (int i = 0; i < num_iterations; i++) {
-    gettimeofday(&start, NULL);
-    multiply_single_thread(/*...*/);
-    gettimeofday(&end, NULL);
-    time_single += (end.tv_sec - start.tv_sec) + 
-                  (end.tv_usec - start.tv_usec) / 1000000.0;
-}
-```
+   ```c
+   struct timeval start, end;
+   double time_single = 0.0, time_multi = 0.0;
+   
+   // Multiple iterations for accurate timing
+   for (int i = 0; i < num_iterations; i++) {
+       gettimeofday(&start, NULL);
+       multiply_single_thread(/*...*/);
+       gettimeofday(&end, NULL);
+       time_single += (end.tv_sec - start.tv_sec) + 
+                     (end.tv_usec - start.tv_usec) / 1000000.0;
+   }
+   ```
 
 Results can be saved to a file, including:
 - Complete input matrices
