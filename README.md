@@ -232,22 +232,6 @@ The program will:
      ./matrix_multiplication <rows_A> <cols_A> <rows_B> <cols_B>
      ```
 
-### Common Issues and Solutions
-1. **Windows pthread Error**: If using MinGW and encountering pthread-related errors:
-   - Install the pthreads-win32 package
-   - Add `-lpthread` instead of `-pthread` in compilation
-
-2. **Permission Denied**: On Unix-based systems (Linux/macOS):
-   ```bash
-   chmod +x matrix_multiplication
-   ```
-
-3. **Math Library Error**: If encountering math library errors:
-   - Linux/WSL: Add `-lm` flag during compilation
-   - macOS: No additional flag needed
-   - Windows: Add `-lm` when using MinGW
-
-
 ## Performance Considerations
 
 The program's performance characteristics vary based on matrix size and system capabilities:
