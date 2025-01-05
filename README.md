@@ -11,7 +11,7 @@ The matrix multiplication program is designed around a thread-per-row approach, 
 ### First Time Setup
 **Clone the Repository**
    ```bash
-   git clone https://github.com/melkor/matrix-multiplication.git
+   git clone [https://github.com/melkor/matrix-multiplication.git]
    cd matrix-multiplication
    ```
 
