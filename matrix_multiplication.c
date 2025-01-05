@@ -17,7 +17,7 @@ typedef struct {
     float **matrixB; // input matrix B
     float **outputMatrix; // output matrix
     int rowsA;      // number of rows in matrix A
-    int columnsA;      // number of columns in matrix A (same as rows in matrix B)
+    int columnsA;      // number of columns in matrix A/rows in matrix B
     int columnsB;      // number of columns in matrix B
     int row;    // row number to calculate
 } ThreadParameters;
