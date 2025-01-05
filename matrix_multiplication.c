@@ -60,7 +60,7 @@ void save_multiplication_results(const char *outputFilePath, float **matrixA, fl
         return;
     }
 
-    fprintf(file, "Matrix Multiplication Results\n");
+    fprintf(file, "  Matrix Multiplication Results\n");
     fprintf(file, "----------------------------------------\n\n");
 
     fprintf(file, "Matrix Dimensions:\n");
@@ -69,7 +69,7 @@ void save_multiplication_results(const char *outputFilePath, float **matrixA, fl
     fprintf(file, "----------------------------------------\n\n");
 
     // print the performance comparison to the file
-    fprintf(file, "Performance Comparison\n");
+    fprintf(file, "    Performance Comparison\n");
     fprintf(file, "----------------------------------------\n");
     fprintf(file, "Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
             singleThreadTime, num_iterations);
@@ -85,7 +85,8 @@ void save_multiplication_results(const char *outputFilePath, float **matrixA, fl
 
     // print that the follwing bellow are the matrices and results
     fprintf(file, "\n----------------------------------------\n\n");
-    fprintf(file, "Matrices and Results\n");
+    fprintf(file, "  Matrices and Results\n");
+    fprintf(file, "----------------------------------------\n\n");
 
     // print the matrix A to the file
     fprintf(file, "Matrix A:\n");
@@ -466,23 +467,9 @@ int main(int argc, char *argv[]) {
 
     // print the results
     seperateLine();
-    printf("Results\n");
+    printf("    Results\n");
     seperateLine();
-    
-    printf("\nMatrix A:\n");
-    print_matrix(matrixA, r_A, c_A, num_type);
-    
-    printf("Matrix B:\n");
-    print_matrix(matrixB, c_A, c_B, num_type);
-    
-    printf("Result (Single-threaded):\n");
-    print_matrix(outputMatrix_single, r_A, c_B, num_type);
-    
-    printf("Result (Multi-threaded):\n");
-    print_matrix(outputMatrix_multi, r_A, c_B, num_type);
 
-    // print performance comparison
-    seperateLine();
     printf("Performance Comparison\n");
     seperateLine();
     printf("Single-threaded time: %.9f seconds (averaged over %d runs)\n", 
@@ -498,7 +485,7 @@ int main(int argc, char *argv[]) {
     }
 
     // if user want to save the results to a file
-    printf("\nDo you want to save the results to a file? (1: Yes, 0: No): ");
+    printf("\nDo you want to save the results including the matrices to a file? (1: Yes, 0: No): ");
     int save_choice;
     scanf("%d", &save_choice);
     clear_input_buffer();
