@@ -157,15 +157,15 @@ void *calculate_matrix_row(void *args) {
     int currentRow = threadData->row;
     
     // check each column in the result matrix for this row
-    for (int resultColumn = 0; resultColumn < threadData->columnsB; resultColumn++) {
+    for (int i = 0; i < threadData->columnsB; i++) {
         // set the result cell to zero
-        threadData->outputMatrix[currentRow][resultColumn] = 0.0;
+        threadData->outputMatrix[currentRow][i] = 0.0;
         
         // calculate dot product for this result cell
-        for (int elementIndex = 0; elementIndex < threadData->columnsA; elementIndex++) {
-            float firstElement = threadData->matrixA[currentRow][elementIndex];
-            float secondElement = threadData->matrixB[elementIndex][resultColumn];
-            threadData->outputMatrix[currentRow][resultColumn] += firstElement * secondElement;
+        for (int j = 0; j < threadData->columnsA; j++) {
+            float firstElement = threadData->matrixA[currentRow][j];
+            float secondElement = threadData->matrixB[j][i];
+            threadData->outputMatrix[currentRow][i] += firstElement * secondElement;
         }
     }
 
